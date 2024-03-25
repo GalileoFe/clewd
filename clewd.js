@@ -25,12 +25,12 @@ CookieChanger.on('ChangeCookie', () => {
 const asyncPool = async (poolLimit, array, iteratorFn) => {
     const ret = [], executing = [];
     for (const item of array) {
-      const p = Promise.resolve().then(() => iteratorFn(item));
-      ret.push(p);
-      if (poolLimit <= array.length) {
-        const e = p.then(() => executing.splice(executing.indexOf(e), 1));
-        executing.push(e);
-        if (executing.length >= poolLimit) await Promise.race(executing);
+        const p = Promise.resolve().then(() => iteratorFn(item));
+        ret.push(p);
+        if (poolLimit <= array.length) {
+            const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+            executing.push(e);
+            if (executing.length >= poolLimit) await Promise.race(executing);
       }
     }
     return Promise.all(ret);
@@ -234,7 +234,8 @@ const updateParams = res => {
             method: 'DELETE'
         });
         updateParams(res);
-    } catch (err) {console.log(`[33mdeleteChat failed[0m`)}; //
+        await checkResErr(res); //
+    } catch (err) {console.log('[33mdeleteChat failed[0m\n%o', err)}; //
 }, onListen = async () => {
 /***************************** */
     if (Firstlogin) {
@@ -275,13 +276,14 @@ const updateParams = res => {
             Cookie: getCookies()
         }
     });
-/**************************** */
-    if (accRes.statusText === 'Forbidden') {
+/***************************** */
+    const accErr = await checkResErr(accRes, false ,false); //await checkResErr(accRes);
+    if (accErr?.status === 403 && !/request/i.test(accErr?.message)) {
         console.log(`[31mExpired![0m`);
         return CookieCleaner(percentage);
     }
-/**************************** */
-    await checkResErr(accRes);
+    if (accErr?.status < 200 || accErr?.status >= 300) throw accErr;
+/***************************** */
     const accInfo = (await accRes.json())?.find(item => item.capabilities.includes('chat')); //const accInfo = (await accRes.json())?.[0];
     if (!accInfo || accInfo.error) {
         throw Error(`Couldn't get account info: "${accInfo?.error?.message || accRes.statusText}"`);
@@ -303,7 +305,6 @@ const updateParams = res => {
             Cookie: getCookies()
         }
     });
-    await checkResErr(statsigRes);
     const statsig = await statsigRes.json();
     cookieModel = statsig.values.dynamic_configs["6zA9wvTedwkzjLxWy9PVe7yydI00XDQ6L5Fejjq/2o8="]?.value?.model;
     isPro = statsig.user.custom.isPro || accInfo.capabilities.includes('claude_pro');
