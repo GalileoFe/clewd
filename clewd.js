@@ -350,7 +350,9 @@ const updateParams = res => {
 /***************************** */
         if (Config.CookieArray?.length > 0) { //}
             console.log(`${'consumer_banned' === flagtype ? '[31mBanned' : '[35mRestricted'}![0m`);
-            return 'consumer_banned' === flagtype ? CookieCleaner(percentage) : CookieChanger.emit('ChangeCookie');
+            if ('consumer_banned' === flagtype || Config.UnRestrictedMode != true) {
+                return 'consumer_banned' === flagtype ? CookieCleaner(percentage) : CookieChanger.emit('ChangeCookie');
+            }
         }
     }
     changing = false, invalidtime = 0;
