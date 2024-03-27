@@ -455,9 +455,9 @@ const updateParams = res => {
                     let {messages} = body;
 /************************* */
                     // 如果有第三方API Key组，就用第三方API Key组，否则用Cookie组
-                    if (Config.ApiArray) {
+                    if (Config.ApiArray === []) {
                         const thirdKey = req.headers.authorization?.match(/(?<=3rdKey:).*/);
-                        apiKey = apiKey = thirdKey?.map(item => item.trim())[0].split(/ ?, ?/) || Config.ApiArray;
+                        apiKey = thirdKey?.map(item => item.trim())[0].split(/ ?, ?/) || Config.ApiArray;
                     } else {
                         const thirdKey = req.headers.authorization?.match(/(?<=3rdKey:).*/);
                         apiKey = thirdKey?.map(item => item.trim())[0].split(/ ?, ?/) || req.headers.authorization?.match(/sk-ant-api\d\d-[\w-]{86}-[\w-]{6}AA/g);
