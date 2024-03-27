@@ -4,13 +4,32 @@
 */
 'use strict';
 
-const {createServer: Server, IncomingMessage, ServerResponse} = require('node:http'), {createHash: Hash, randomUUID, randomInt, randomBytes} = require('node:crypto'), {TransformStream, ReadableStream} = require('node:stream/web'), {Readable, Writable} = require('node:stream'), {Blob} = require('node:buffer'), {existsSync: exists, writeFileSync: write, createWriteStream} = require('node:fs'), {join: joinP} = require('node:path'), {ClewdSuperfetch: Superfetch, SuperfetchAvailable} = require('./lib/clewd-superfetch'), {AI, fileName, genericFixes, bytesToSize, setTitle, checkResErr, Replacements, Main} = require('./lib/clewd-utils'), ClewdStream = require('./lib/clewd-stream');
+let Server, IncomingMessage, ServerResponse, Hash, randomUUID, randomInt, randomBytes, TransformStream, ReadableStream,
+    Readable, Writable, Blob, exists, write, createWriteStream, joinP, Superfetch, SuperfetchAvailable, AI, fileName,
+    genericFixes, bytesToSize, setTitle, checkResErr, Replacements, Main, ClewdStream;
+({createServer: Server, IncomingMessage, ServerResponse} = require('node:http'));
+({createHash: Hash, randomUUID, randomInt, randomBytes} = require('node:crypto'));
+({TransformStream, ReadableStream} = require('node:stream/web'));
+({Readable, Writable} = require('node:stream'));
+({Blob} = require('node:buffer'));
+({existsSync: exists, writeFileSync: write, createWriteStream} = require('node:fs'));
+({join: joinP} = require('node:path'));
+({ClewdSuperfetch: Superfetch, SuperfetchAvailable} = require('./lib/clewd-superfetch'));
+({AI, fileName, genericFixes, bytesToSize, setTitle, checkResErr, Replacements, Main} = require('./lib/clewd-utils'));
+ClewdStream = require('./lib/clewd-stream');
 
 /******************************************************* */
-let currentIndex, Firstlogin = true, changeflag = 0, changing, changetime = 0, totaltime, invalidtime = 0, uuidOrgArray = [], model, cookieModel, tokens, apiKey, timestamp, regexLog, isPro;
+let currentIndex, Firstlogin, changeflag, changing, changetime, totaltime, invalidtime, uuidOrgArray, model,
+    cookieModel, tokens, apiKey, timestamp, regexLog, isPro;
+Firstlogin = true;
+changeflag = 0;
+changetime = 0;
+invalidtime = 0;
+uuidOrgArray = [];
 
-const events = require('events'), CookieChanger = new events.EventEmitter();
-require('events').EventEmitter.defaultMaxListeners = 0;
+const events = require('events');
+const CookieChanger = new events.EventEmitter();
+events.EventEmitter.defaultMaxListeners = 0;
 
 CookieChanger.on('ChangeCookie', () => {
     setTimeout(() => {
@@ -144,9 +163,15 @@ const ConfigPath = joinP(__dirname, './config.js'), LogPath = joinP(__dirname, '
     depth: 0
 }, cookies = {};
 
-let uuidOrg, curPrompt = {}, prevPrompt = {}, prevMessages = [], prevImpersonated = false, Config = {
+let uuidOrg, curPrompt, prevPrompt, prevMessages, prevImpersonated, Config;
+curPrompt = {};
+prevPrompt = {};
+prevMessages = [];
+prevImpersonated = false;
+Config = {
     Cookie: '',
     CookieArray: [],
+    ApiArray: [],
     Cookiecounter: 3,
     CookieIndex: 0,
     ProxyPassword: '',
@@ -157,6 +182,7 @@ let uuidOrg, curPrompt = {}, prevPrompt = {}, prevMessages = [], prevImpersonate
     SystemInterval: 3,
     rProxy: '',
     api_rProxy: '',
+    UnRestrictedMode: false,
     placeholder_token: '',
     placeholder_byte: '',
     PromptExperimentFirst: '',
@@ -350,7 +376,7 @@ const updateParams = res => {
 /***************************** */
         if (Config.CookieArray?.length > 0) { //}
             console.log(`${'consumer_banned' === flagtype ? '[31mBanned' : '[35mRestricted'}![0m`);
-            if ('consumer_banned' === flagtype || Config.UnRestrictedMode != true) {
+            if ('consumer_banned' === flagtype && Config.UnRestrictedMode != true) {
                 return 'consumer_banned' === flagtype ? CookieCleaner(percentage) : CookieChanger.emit('ChangeCookie');
             }
         }
@@ -428,8 +454,14 @@ const updateParams = res => {
                     temperature = Math.max(.1, Math.min(1, temperature));
                     let {messages} = body;
 /************************* */
-                    const thirdKey = req.headers.authorization?.match(/(?<=3rdKey:).*/);
-                    apiKey = thirdKey?.map(item => item.trim())[0].split(/ ?, ?/) || req.headers.authorization?.match(/sk-ant-api\d\d-[\w-]{86}-[\w-]{6}AA/g);
+                    // 如果有第三方API Key组，就用第三方API Key组，否则用Cookie组
+                    if (Config.ApiArray) {
+                        const thirdKey = req.headers.authorization?.match(/(?<=3rdKey:).*/);
+                        apiKey = apiKey = thirdKey?.map(item => item.trim())[0].split(/ ?, ?/) || Config.ApiArray;
+                    } else {
+                        const thirdKey = req.headers.authorization?.match(/(?<=3rdKey:).*/);
+                        apiKey = thirdKey?.map(item => item.trim())[0].split(/ ?, ?/) || req.headers.authorization?.match(/sk-ant-api\d\d-[\w-]{86}-[\w-]{6}AA/g);
+                    }
                     model = apiKey || Config.Settings.PassParams && /claude-(?!default)/.test(body.model) || isPro && AI.mdl().includes(body.model) ? body.model : cookieModel;
                     let max_tokens_to_sample = body.max_tokens, stop_sequences = body.stop || [], top_p = body.top_p, top_k = body.top_k;
                     if (!apiKey && Config.ProxyPassword != '' && req.headers.authorization != 'Bearer ' + Config.ProxyPassword) {
